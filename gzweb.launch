@@ -1,0 +1,15 @@
+<launch>  
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="/usr/share/gazebo-11/worlds/pr2.world"/>
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="false"/>
+    <arg name="headless" value="true"/>
+    <arg name="debug" value="false"/>
+  </include>
+
+  <group>
+    <param name="gazebo/enable_ros_network" value="$(arg enable_ros_network)" />
+  </group>    
+</launch>
+

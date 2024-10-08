@@ -1,0 +1,48 @@
+FROM ros:noetic-ros-base-focal
+
+# install packages
+RUN apt-get update && apt-get install -q -y --no-install-recommends \
+    dirmngr \
+    gnupg2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# setup keys
+RUN set -eux; \
+	key='D2486D2DD83DB69272AFE98867170598AF249743'; \
+	export GNUPGHOME="$(mktemp -d)"; \
+	gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key"; \
+	mkdir -p /usr/share/keyrings; \
+	gpg --batch --export "$key" > /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg; \
+	gpgconf --kill all; \
+	rm -rf "$GNUPGHOME"
+
+# setup sources.list
+RUN . /etc/os-release \
+    && echo "deb [ signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg ] http://packages.osrfoundation.org/gazebo/$ID-stable $VERSION_CODENAME main" > /etc/apt/sources.list.d/gazebo-latest.list
+
+# install gazebo packages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gazebo11=11.14.0-1* \
+    libgazebo11-dev=11.14.0-1* \
+    ros-noetic-gazebo-ros-pkgs \
+    ros-noetic-gazebo-ros-control \    
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app/
+
+RUN mkdir -p /app/catkin_ws/
+COPY ./catkin_ws/ /app/catkin_ws/
+RUN /bin/bash -c "source /opt/ros/noetic/setup.bash && cd /app/catkin_ws && catkin_make"
+
+COPY ./gzserver_entrypoint.sh /app
+RUN chmod +x /app/gzserver_entrypoint.sh
+
+# setup environment
+EXPOSE 11345
+EXPOSE 11311
+EXPOSE 8080
+EXPOSE 7681
+
+# setup entrypoint
+ENTRYPOINT ["/app/gzserver_entrypoint.sh"]
+# CMD ["-c", "'/root/gzweb/entrypoint.sh'"]
